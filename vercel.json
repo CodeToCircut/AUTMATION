@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/track-traffic",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
