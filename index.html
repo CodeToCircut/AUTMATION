@@ -14,147 +14,40 @@
             --success: #10b981;
             --error: #ef4444;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .dashboard {
-            background-color: var(--card-bg);
-            width: 100%;
-            max-width: 600px;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: var(--text-muted);
-            font-size: 14px;
-        }
-
-        /* Loading Spinner */
-        .loader-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 40px 0;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-left-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Results List */
-        .results-container {
-            display: none; /* Hidden until loaded */
-        }
-
-        .stat-card {
-            background-color: rgba(0,0,0,0.2);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-left: 4px solid var(--success);
-        }
-
-        .stat-card.error {
-            border-left-color: var(--error);
-        }
-
-        .repo-name {
-            font-weight: 600;
-            font-size: 15px;
-        }
-
-        .repo-stats {
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .badge {
-            background-color: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .btn-sync {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background-color 0.2s;
-        }
-
-        .btn-sync:hover {
-            background-color: #2563eb;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .dashboard { background-color: var(--card-bg); width: 100%; max-width: 650px; border-radius: 16px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 24px; margin-bottom: 8px; }
+        .header p { color: var(--text-muted); font-size: 14px; }
+        
+        .loader-container { display: flex; flex-direction: column; align-items: center; margin: 40px 0; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .results-container { display: none; }
+        .stat-card { background-color: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--success); }
+        .stat-card.error { border-left-color: var(--error); }
+        .repo-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; word-break: break-all; }
+        .repo-stats { color: var(--text-muted); font-size: 13px; line-height: 1.4; }
+        .badge { background-color: rgba(16, 185, 129, 0.2); color: var(--success); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; margin-left: 15px; }
+        .badge.failed { background-color: rgba(239, 68, 68, 0.2); color: var(--error); }
+        
+        .btn-sync { display: block; width: 100%; padding: 14px; background-color: var(--accent); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 25px; transition: background-color 0.2s; }
+        .btn-sync:hover { background-color: #2563eb; }
     </style>
 </head>
 <body>
-
     <div class="dashboard">
         <div class="header">
             <h1>Repository Traffic Sync</h1>
             <p>Automated GitHub to Notion logging</p>
         </div>
-
         <div class="loader-container" id="loader">
             <div class="spinner"></div>
-            <p id="loading-text">Fetching your repositories...</p>
+            <p id="loading-text">Fetching data from GitHub...</p>
         </div>
-
-        <div class="results-container" id="results">
-            <!-- Results will be injected here by JavaScript -->
-        </div>
-        
+        <div class="results-container" id="results"></div>
         <button class="btn-sync" id="manual-sync" style="display: none;" onclick="runSync()">Run Sync Again</button>
     </div>
 
@@ -164,15 +57,12 @@
             const results = document.getElementById('results');
             const syncBtn = document.getElementById('manual-sync');
             
-            // Reset UI
             loader.style.display = 'flex';
             results.style.display = 'none';
             results.innerHTML = '';
             syncBtn.style.display = 'none';
-            document.getElementById('loading-text').innerText = "Syncing with GitHub and Notion...";
 
             try {
-                // Call your Vercel serverless function
                 const response = await fetch('/api/track-traffic');
                 const data = await response.json();
 
@@ -180,29 +70,28 @@
                 results.style.display = 'block';
 
                 if (data.success) {
-                    // Loop through the logs and create a beautiful card for each repo
-                    data.details.forEach(log => {
-                        // Example log text: "my-repo-name: Logged 15 views."
-                        const parts = log.split(':');
-                        const repoName = parts[0];
-                        const logText = parts[1] || 'Processed';
-
-                        const card = document.createElement('div');
-                        card.className = 'stat-card';
-                        card.innerHTML = `
-                            <div>
-                                <div class="repo-name">${repoName}</div>
-                                <div class="repo-stats">${logText}</div>
-                            </div>
-                            <div class="badge">Synced</div>
-                        `;
-                        results.appendChild(card);
-                    });
+                    if (data.details.length === 0) {
+                        results.innerHTML = `<p style="text-align:center; color: var(--text-muted);">No repositories found.</p>`;
+                    } else {
+                        data.details.forEach(log => {
+                            const isError = log.status === 'error';
+                            const card = document.createElement('div');
+                            card.className = isError ? 'stat-card error' : 'stat-card';
+                            card.innerHTML = `
+                                <div>
+                                    <div class="repo-name">${log.repo}</div>
+                                    <div class="repo-stats">${log.message}</div>
+                                </div>
+                                <div class="badge ${isError ? 'failed' : ''}">${isError ? 'Failed' : 'Synced'}</div>
+                            `;
+                            results.appendChild(card);
+                        });
+                    }
                 } else {
                     results.innerHTML = `
                         <div class="stat-card error">
                             <div>
-                                <div class="repo-name">Sync Failed</div>
+                                <div class="repo-name">API Error</div>
                                 <div class="repo-stats">${data.error}</div>
                             </div>
                         </div>`;
@@ -212,17 +101,11 @@
                 results.style.display = 'block';
                 results.innerHTML = `
                     <div class="stat-card error">
-                        <div>
-                            <div class="repo-name">Network Error</div>
-                            <div class="repo-stats">Could not reach the API.</div>
-                        </div>
+                        <div><div class="repo-name">Network Error</div><div class="repo-stats">Could not reach the server.</div></div>
                     </div>`;
             }
-            
             syncBtn.style.display = 'block';
         }
-
-        // Run automatically when the page loads
         window.onload = runSync;
     </script>
 </body>
