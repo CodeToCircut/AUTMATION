@@ -36,13 +36,25 @@ export default async function handler(req, res) {
 
     const reposResponse = await fetch(`https://api.github.com/user/repos?type=owner&per_page=100`, { headers: commonHeaders });
     const allRepos = await reposResponse.json();
+    
+    if (!Array.isArray(allRepos)) {
+      console.error("GITHUB_REPO_ERROR:", allRepos);
+      return res.status(500).json({ success: false, error: "Failed to get repos from GitHub" });
+    }
+
     const repoNames = allRepos.map(repo => repo.name);
 
     for (const repo of repoNames) {
       const trafficResponse = await fetch(`https://api.github.com/repos/${username}/${repo}/traffic/views`, { headers: commonHeaders });
-      if (!trafficResponse.ok) continue;
-
       const trafficData = await trafficResponse.json();
+      
+      console.log(`DEBUG_GITHUB_${repo}:`, JSON.stringify(trafficData));
+
+      if (!trafficResponse.ok) {
+        logs.push({ repo: repo, status: "error", message: `GitHub: ${trafficData.message || 'Error'}` });
+        continue; 
+      }
+
       const payload = {
         parent: { database_id: databaseId },
         properties: {
@@ -52,9 +64,6 @@ export default async function handler(req, res) {
           "Unique Visitors": { number: trafficData.uniques || 0 }
         }
       };
-
-      // THE DEEP LOGGER: This will now show up in your Vercel logs
-      console.log("DEBUG_SENDING_TO_NOTION:", JSON.stringify(payload));
 
       const notionResponse = await fetch('https://api.notion.com/v1/pages', {
         method: 'POST',
@@ -66,15 +75,18 @@ export default async function handler(req, res) {
         body: JSON.stringify(payload)
       });
 
+      const notionResult = await notionResponse.json();
+
       if (!notionResponse.ok) {
-        const err = await notionResponse.json();
-        logs.push({ repo: repo, status: "error", message: `Notion Error: ${err.message}` });
+        console.error(`NOTION_FAILURE_${repo}:`, JSON.stringify(notionResult));
+        logs.push({ repo: repo, status: "error", message: `Notion: ${notionResult.message}` });
       } else {
-        logs.push({ repo: repo, status: "success", message: `Logged successfully.` });
+        logs.push({ repo: repo, status: "success", message: "Logged." });
       }
     }
     return res.status(200).json({ success: true, details: logs });
   } catch (error) {
+    console.error("CRITICAL_CRASH:", error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
