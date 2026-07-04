@@ -1,9 +1,11 @@
 import fetch from 'node-fetch';
 
-// Safely clean the Notion ID whether you pasted the full URL or just the ID string
+// Safely clean the Notion ID and aggressively strip out any accidental quotes
 function cleanNotionId(input) {
   if (!input) return null;
-  let clean = input.trim();
+  // This physically deletes any " or ' marks you might have accidentally pasted in Vercel
+  let clean = input.replace(/['"]/g, '').trim(); 
+  
   if (clean.includes('?')) clean = clean.split('?')[0]; 
   if (clean.includes('/')) {
     const parts = clean.split('/');
@@ -16,11 +18,10 @@ export default async function handler(req, res) {
   const logs = [];
   const today = new Date().toISOString().split('T')[0];
 
-  // Safely grab environment variables
   const rawNotionId = process.env.NOTION_DATABASE_ID;
-  const notionToken = process.env.NOTION_TOKEN?.trim();
-  const githubToken = process.env.GITHUB_PAT?.trim();
-  const username = process.env.GITHUB_USERNAME?.trim();
+  const notionToken = process.env.NOTION_TOKEN?.replace(/['"]/g, '').trim();
+  const githubToken = process.env.GITHUB_PAT?.replace(/['"]/g, '').trim();
+  const username = process.env.GITHUB_USERNAME?.replace(/['"]/g, '').trim();
 
   if (!username || !githubToken || !notionToken || !rawNotionId) {
     return res.status(400).json({ 
@@ -39,7 +40,6 @@ export default async function handler(req, res) {
       'User-Agent': 'Vercel-Automated-Traffic-App'
     };
 
-    // 1. Get all your repositories dynamically
     const reposResponse = await fetch(`https://api.github.com/user/repos?type=owner&per_page=100`, { headers: commonHeaders });
 
     if (!reposResponse.ok) {
@@ -53,7 +53,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, details: [] });
     }
 
-    // 2. Loop through repos and get traffic
     for (const repo of repoNames) {
       try {
         const trafficResponse = await fetch(`https://api.github.com/repos/${username}/${repo}/traffic/views`, { headers: commonHeaders });
@@ -67,7 +66,6 @@ export default async function handler(req, res) {
         const totalViews = trafficData.count || 0;
         const uniqueVisitors = trafficData.uniques || 0;
 
-        // 3. Push to Notion
         const notionResponse = await fetch('https://api.notion.com/v1/pages', {
           method: 'POST',
           headers: {
