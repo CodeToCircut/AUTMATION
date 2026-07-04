@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 // 1. ADD YOUR REPOSITORY NAMES HERE
 const REPOSITORIES = [
-  "my-first-arduino-project",
+  "Joystick_Module",
   "rfid-electronic-safe",
   "motion-sensor-fan-shorts"
 ];
