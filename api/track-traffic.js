@@ -1,33 +1,33 @@
 import fetch from 'node-fetch';
 
-// FOOLPROOF FEATURE 1: Automatically cleans messy Notion URLs. 
-// Whether you pasted the whole link, left the "?v=" attached, or just pasted the ID, this extracts only what it needs.
+// Safely clean the Notion ID whether you pasted the full URL or just the ID string
 function cleanNotionId(input) {
   if (!input) return null;
   let clean = input.trim();
-  if (clean.includes('?')) clean = clean.split('?')[0]; // Strips ?v=...
+  if (clean.includes('?')) clean = clean.split('?')[0]; 
   if (clean.includes('/')) {
     const parts = clean.split('/');
-    clean = parts[parts.length - 1]; // Strips https://notion.so/...
+    clean = parts[parts.length - 1]; 
   }
-  return clean.replace(/-/g, ''); // Removes hyphens
+  return clean.replace(/-/g, '');
 }
 
 export default async function handler(req, res) {
   const logs = [];
   const today = new Date().toISOString().split('T')[0];
 
-  // FOOLPROOF FEATURE 2: Safely check and trim all environment variables so hidden spaces don't break the auth.
+  // Safely grab environment variables
   const rawNotionId = process.env.NOTION_DATABASE_ID;
   const notionToken = process.env.NOTION_TOKEN?.trim();
   const githubToken = process.env.GITHUB_PAT?.trim();
   const username = process.env.GITHUB_USERNAME?.trim();
 
-  // Stop immediately and warn the user if a variable is missing
-  if (!username) return res.status(400).json({ success: false, error: "Missing GITHUB_USERNAME in environment variables." });
-  if (!githubToken) return res.status(400).json({ success: false, error: "Missing GITHUB_PAT in environment variables." });
-  if (!notionToken) return res.status(400).json({ success: false, error: "Missing NOTION_TOKEN in environment variables." });
-  if (!rawNotionId) return res.status(400).json({ success: false, error: "Missing NOTION_DATABASE_ID in environment variables." });
+  if (!username || !githubToken || !notionToken || !rawNotionId) {
+    return res.status(400).json({ 
+      success: false, 
+      error: "Missing one or more Environment Variables in Vercel." 
+    });
+  }
 
   const databaseId = cleanNotionId(rawNotionId);
 
@@ -39,36 +39,35 @@ export default async function handler(req, res) {
       'User-Agent': 'Vercel-Automated-Traffic-App'
     };
 
-    // 1. Fetch GitHub Repositories
+    // 1. Get all your repositories dynamically
     const reposResponse = await fetch(`https://api.github.com/user/repos?type=owner&per_page=100`, { headers: commonHeaders });
 
     if (!reposResponse.ok) {
-      const err = await reposResponse.text();
-      throw new Error(`GitHub Auth Failed. Check if your PAT is correct and has 'repo' scope. Details: ${err}`);
+      throw new Error(`GitHub Auth Failed. Check if your PAT is correct.`);
     }
 
     const allRepos = await reposResponse.json();
     const repoNames = allRepos.map(repo => repo.name);
 
     if (repoNames.length === 0) {
-      return res.status(200).json({ success: true, details: ["No repositories found for this GitHub account."] });
+      return res.status(200).json({ success: true, details: [] });
     }
 
-    // 2. Loop through each repo safely
+    // 2. Loop through repos and get traffic
     for (const repo of repoNames) {
       try {
         const trafficResponse = await fetch(`https://api.github.com/repos/${username}/${repo}/traffic/views`, { headers: commonHeaders });
 
         if (!trafficResponse.ok) {
-          logs.push(`${repo}: Skipped (GitHub blocked access to traffic)`);
-          continue; // FOOLPROOF FEATURE 3: If one repo fails, skip it and keep running the rest!
+          logs.push({ repo: repo, status: "error", message: "GitHub blocked traffic access." });
+          continue; 
         }
 
         const trafficData = await trafficResponse.json();
         const totalViews = trafficData.count || 0;
         const uniqueVisitors = trafficData.uniques || 0;
 
-        // 3. Send to Notion
+        // 3. Push to Notion
         const notionResponse = await fetch('https://api.notion.com/v1/pages', {
           method: 'POST',
           headers: {
@@ -87,16 +86,15 @@ export default async function handler(req, res) {
           })
         });
 
-        // FOOLPROOF FEATURE 4: Exact Notion error decoding
         if (!notionResponse.ok) {
           const notionError = await notionResponse.json();
-          logs.push(`${repo} ❌ NOTION ERROR: ${notionError.message}`);
+          logs.push({ repo: repo, status: "error", message: `Notion Error: ${notionError.message}` });
         } else {
-          logs.push(`${repo} ✅ Success (${totalViews} views)`);
+          logs.push({ repo: repo, status: "success", message: `Logged ${totalViews} views, ${uniqueVisitors} unique.` });
         }
 
       } catch (repoError) {
-        logs.push(`${repo} ❌ CRASH: ${repoError.message}`);
+        logs.push({ repo: repo, status: "error", message: `Crashed: ${repoError.message}` });
       }
     }
 
